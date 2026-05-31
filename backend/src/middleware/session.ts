@@ -26,10 +26,10 @@ export function resolveSession(req: Request): {
   return { sessionId, setCookie: true };
 }
 
-export function withSession(
-  handler: (req: Request, ctx: SessionContext) => Promise<Response>,
-): (req: Request) => Promise<Response> {
-  return async (req) => {
+export function withSession<T extends Request = Request>(
+  handler: (req: T, ctx: SessionContext) => Promise<Response>,
+): (req: T) => Promise<Response> {
+  return async (req: T) => {
     try {
       const { sessionId, setCookie } = resolveSession(req);
       const response = await handler(req, { sessionId });
