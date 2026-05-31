@@ -15,6 +15,11 @@ const client = new S3Client({
   },
 });
 
+export function publicUrlForKey(key: string): string {
+  const base = config.r2.publicUrl!.replace(/\/$/, "");
+  return `${base}/${key}`;
+}
+
 export function originalKey(
   sessionId: string,
   jobId: string,
