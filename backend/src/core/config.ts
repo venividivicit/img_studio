@@ -1,17 +1,17 @@
 function required(name: string): string {
-  const value = process.env[name];
+  const value = Bun.env[name];
   if (!value) throw new Error(`Missing required env: ${name}`);
   return value;
 }
 
 function optional(name: string, fallback: string): string {
-  return process.env[name] ?? fallback;
+  return Bun.env[name] ?? fallback;
 }
 
 export const config = {
-  port: Number(process.env.PORT) || 3000,
+  port: Number(Bun.env.PORT) || 3000,
   databasePath: optional("DATABASE_PATH", "./data/img_studio.sqlite"),
-  maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES) || 5 * 1024 * 1024,
+  maxUploadBytes: Number(Bun.env.MAX_UPLOAD_BYTES) || 5 * 1024 * 1024,
 
   cloudinary: {
     cloudName: required("CLOUDINARY_CLOUD_NAME"),
@@ -24,7 +24,7 @@ export const config = {
     accessKeyId: required("R2_ACCESS_KEY_ID"),
     secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
     bucket: required("R2_BUCKET"),
-    publicUrl: process.env.R2_PUBLIC_URL, // optional
+    publicUrl: required("R2_PUBLIC_URL"),
     endpoint: `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
   },
 } as const;
