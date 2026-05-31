@@ -1,8 +1,9 @@
-import { AppError } from "../lib/errors.ts";
+import { AppError, type ErrorCode } from "../lib/errors.ts";
 import { config } from "../core/config.ts";
 import type { JobRecord } from "../types/job.ts";
 import * as blobStorage from "./blob_storage.ts";
 import { jobRepository } from "../repositories/job_repository.ts";
+import { processImage } from "./image_processor.ts";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png"]);
 
@@ -17,6 +18,14 @@ function extFromMime(mime: string): string {
   }
 }
 
+function failJob(jobId: string, code: ErrorCode, message: string): void {
+  jobRepository.updateStatus(jobId, "failed", {
+    errorCode: code,
+    errorMessage: message,
+    completedAt: new Date().toISOString(),
+  });
+}
+
 export function listJobs(sessionId: string, limit: number = 10): JobRecord[] {
   return jobRepository.listBySession(sessionId, limit);
 }
@@ -27,6 +36,35 @@ export function getJob(jobId: string, sessionId: string): JobRecord {
     throw new AppError("JOB_NOT_FOUND", "Job not found.", 404);
   }
   return job;
+}
+
+export async function processJob(
+  jobId: string,
+  sessionId: string,
+): Promise<void> {
+  const job = getJob(jobId, sessionId);
+  if (!job.original_r2_key) {
+    failJob(jobId, "PROCESSING_FAILED", "Original image is missing.");
+    return;
+  }
+
+  try {
+    const sourceUrl = blobStorage.publicUrlForKey(job.original_r2_key);
+    const processed = await processImage(sourceUrl);
+    const processedKey = blobStorage.processedKey(sessionId, jobId);
+    await blobStorage.putObject(processedKey, processed, "image/png");
+    jobRepository.updateStatus(jobId, "completed", {
+      processedR2Key: processedKey,
+      completedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("[processJob]", { jobId, error });
+    failJob(
+      jobId,
+      "PROCESSING_FAILED",
+      "Could not process image. Please try again.",
+    );
+  }
 }
 
 export async function createJobFromUpload(
