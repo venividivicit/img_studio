@@ -3,8 +3,21 @@ import { json } from "../lib/http.ts";
 import { toJobDto } from "../types/job.ts";
 import * as jobService from "../services/job_service.ts";
 import type { BunRequest } from "bun";
+
 type JobByIdRequest = BunRequest<"/api/jobs/:id">;
+type JobOriginalRequest = BunRequest<"/api/jobs/:id/original">;
+type JobProcessedRequest = BunRequest<"/api/jobs/:id/processed">;
+
 import { AppError } from "../lib/errors.ts";
+
+function imageResponse(body: Uint8Array, contentType: string): Response {
+  return new Response(body, {
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
+}
 
 export const jobsRoutes = {
   "/api/jobs": {
@@ -30,6 +43,24 @@ export const jobsRoutes = {
     DELETE: withSession<JobByIdRequest>(async (req, ctx) => {
       await jobService.deleteJob(req.params.id, ctx.sessionId);
       return new Response(null, { status: 204 });
+    }),
+  },
+  "/api/jobs/:id/original": {
+    GET: withSession<JobOriginalRequest>(async (req, ctx) => {
+      const { body, contentType } = await jobService.getJobOriginalBytes(
+        req.params.id,
+        ctx.sessionId,
+      );
+      return imageResponse(body, contentType);
+    }),
+  },
+  "/api/jobs/:id/processed": {
+    GET: withSession<JobProcessedRequest>(async (req, ctx) => {
+      const { body, contentType } = await jobService.getJobProcessedBytes(
+        req.params.id,
+        ctx.sessionId,
+      );
+      return imageResponse(body, contentType);
     }),
   },
 } as const;
