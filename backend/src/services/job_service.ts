@@ -118,7 +118,49 @@ export async function createJobFromUpload(
     );
   }
 
+  void processJob(jobId, sessionId).catch((err) =>
+    console.error("[processJob] unhandled", { jobId, err }),
+  );
+
   return getJob(jobId, sessionId);
+}
+
+export async function getJobOriginalBytes(
+  jobId: string,
+  sessionId: string,
+): Promise<{ body: Uint8Array; contentType: string }> {
+  const job = getJob(jobId, sessionId);
+  if (!job.original_r2_key) {
+    throw new AppError(
+      "JOB_NOT_FOUND",
+      "Original image is not available.",
+      404,
+    );
+  }
+  const object = await blobStorage.getObject(job.original_r2_key);
+  return {
+    body: object.body,
+    contentType: job.original_mime || object.contentType,
+  };
+}
+
+export async function getJobProcessedBytes(
+  jobId: string,
+  sessionId: string,
+): Promise<{ body: Uint8Array; contentType: string }> {
+  const job = getJob(jobId, sessionId);
+  if (!job.processed_r2_key) {
+    throw new AppError(
+      "JOB_NOT_FOUND",
+      "Processed image is not available yet.",
+      404,
+    );
+  }
+  const object = await blobStorage.getObject(job.processed_r2_key);
+  return {
+    body: object.body,
+    contentType: object.contentType,
+  };
 }
 
 export async function deleteJob(
