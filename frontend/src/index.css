@@ -17,8 +17,8 @@
 }
 
 @theme {
-  --animate-border-glow: border-rotate 2.5s linear infinite,
-    edge-pulse 1.25s ease-in-out infinite;
+  --animate-border-glow:
+    border-rotate 4s linear infinite, edge-pulse 1.25s ease-in-out infinite;
 }
 
 @keyframes job-item-enter {
